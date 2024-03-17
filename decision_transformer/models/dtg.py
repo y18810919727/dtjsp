@@ -156,11 +156,14 @@ class dtg(nn.Module):
         action_seq_feature = torch.gather(h_nodes, 1, actions.reshape([-1, 1, 1]).expand(-1, -1, h_nodes.size(-1))).squeeze(dim=1)
 
         dummy = candidate.unsqueeze(-1).expand(-1, self.n_j, h_nodes.size(-1))
+        if last:
+            # In inference stage, only the features of the operations at the last step are preserved.
+            dummy, h_nodes = dummy[-1], h_nodes[-1]
 
         # (episode length, num of available operations, feature size)
-        candidate_features = torch.gather(h_nodes.reshape(dummy.size(0), -1, dummy.size(-1)), 1, dummy)
+        candidate_features = torch.gather(h_nodes, -2, dummy)
 
-        return h_pooled, action_seq_feature, candidate_features[-1] if last else candidate_features
+        return h_pooled, action_seq_feature, candidate_features
 
     def prefix_padding(self, x: torch.Tensor, length, value=0):
 
@@ -192,7 +195,7 @@ class dtg(nn.Module):
         for i in range(batch_size):
             episode_length = episode_lengths[i]
             h_pooled, action_seq_feature, candidate_features =  self.gnn_encode_single_batch(
-                self.to_tensor(x[i]), self.to_tensor(adj[i]), self.to_tensor(actions[i]), self.to_tensor(candidate[i])
+                self.to_tensor(x[i]), self.to_tensor(adj[i]), self.to_tensor(actions[i]), self.to_tensor(candidate[i]), last=False
             )
 
             # Tensors that should be padded for alignment
@@ -200,9 +203,6 @@ class dtg(nn.Module):
             action_seq_feature = self.prefix_padding(action_seq_feature, self.max_length)
             pad_rewards = self.prefix_padding(self.to_tensor(rewards[i]), self.max_length)
             pad_returns_to_go = self.prefix_padding(self.to_tensor(returns_to_go[i]), self.max_length)
-            # pad_candidate = self.prefix_padding(self.to_tensor(candidate[i]), self.max_length)
-            # pad_mask = self.prefix_padding(self.to_tensor(mask[i]), self.max_length)
-            # pad_done = self.prefix_padding(self.to_tensor(done[i]), self.max_length, value=1)
 
             timesteps = self.prefix_padding(
                 self.to_tensor(np.array(si[i])).unsqueeze(dim=-1) + torch.arange(episode_length).to(self.device), self.max_length
@@ -212,16 +212,26 @@ class dtg(nn.Module):
 
             aligned_trajs.append((h_pooled, action_seq_feature, pad_rewards, pad_returns_to_go, timesteps, Attention_mask))
 
-            # Tensors that will not be padded for alignment
-            candidate_tensor = self.to_tensor(candidate[i])
-            mask_tensor = self.to_tensor(mask[i])
-            done_tensor = self.to_tensor(done[i])
-            not_aligned_trajs.append((candidate_features, candidate_tensor, mask_tensor, done_tensor))
-            # trajs.append((h_pooled, action_seq_feature, candidate_features, pad_rewards, pad_returns_to_go, pad_candidate, pad_mask, timesteps, pad_done, Attention_mask))
+
+            # region packing tensors that will not be padded for alignment
+            # ================================================
+            # The following tensors are not utilized now
+
+            # candidate_tensor = self.to_tensor(candidate[i])
+            # mask_tensor = self.to_tensor(mask[i])
+            # done_tensor = self.to_tensor(done[i])
+            # ================================================
+
+            # not_aligned_trajs.append((candidate_features, candidate_tensor, mask_tensor, done_tensor))
+            not_aligned_trajs.append((candidate_features, ))
+            # endregion
 
         # h_pooled, action_seq_feature, actions_fea_laststep, rewards, returns_to_go, candidate, mask, timesteps, done, Attention_mask = [torch.stack(x) for x in zip(*trajs)]
         h_pooled, action_seq_feature, rewards, returns_to_go, timesteps, Attention_mask = [torch.stack(x) for x in zip(*aligned_trajs)]
-        candidate_features, candidate, mask, done = [x for x in zip(*not_aligned_trajs)]
+
+        # unpacking not_aligned_trajs
+        # candidate_features, candidate, mask, done = [x for x in zip(*not_aligned_trajs)]
+        candidate_features, = [x for x in zip(*not_aligned_trajs)]
 
         state_preds, action_preds, reward_preds = self.DecisionTransformer.forward(
             h_pooled, action_seq_feature, rewards, returns_to_go, timesteps, attention_mask=Attention_mask
@@ -235,7 +245,7 @@ class dtg(nn.Module):
             action_pred_fea_repeated = action_preds[i, -episode_length:].unsqueeze(1).expand_as(cf)
             concateFea = torch.cat((cf, action_pred_fea_repeated), dim=-1)
             candidate_scores = self.actor(concateFea)
-            pi = F.softmax(candidate_scores, dim=1)
+            pi = F.softmax(candidate_scores, dim=1).squeeze(dim=-1)
             pi_list.append(pi)
 
         return pi_list
@@ -255,50 +265,40 @@ class dtg(nn.Module):
     def get_action(self, x, adj, candidate, mask, actions, rewards, returns_to_go, timesteps, **kwargs):
         # we don't care about the past rewards in this model
 
-        # episode_length, operation_nums, _ = x[0].shape
+        x, adj, actions, candidate = x[-self.max_length:], adj[-self.max_length:], actions[-self.max_length:], candidate[-self.max_length:]
 
-        # for i in range(batch_size):
-        #     x[i] = torch.from_numpy(np.squeeze(np.array(x[i]))).to(self.device)
-        #     adj[i] = torch.from_numpy(np.squeeze(np.array(adj[i]))).to(self.device).to_sparse()
-        #     candidate[i] = torch.from_numpy(np.squeeze(np.array(candidate[i]))).to(self.device).unsqueeze(0)
-        #     mask[i] = torch.from_numpy(np.squeeze(np.array(mask[i]))).to(self.device).unsqueeze(0)
         states, actions_feat, candidate_features = self.gnn_encode_single_batch(
-            x,adj, actions, candidate, last=True
+            x, adj, actions, candidate, last=True
         )
-        # states, actions_feat = states.unsqueeze(0), actions_feat.unsqueeze(0)
 
         states = states.reshape(1, -1, self.state_dim)
         actions_feat = actions_feat.reshape(1, -1, self.act_dim)
         returns_to_go = returns_to_go.reshape(1, -1, 1)
         timesteps = timesteps.reshape(1, -1)
 
-        # episode_lengths = [x[i].shape[0] for i in range(batch_size)]
+        returns_to_go = returns_to_go[:,-self.max_length:]
 
-        if self.max_length is not None:
-            states = states[:,-self.max_length:]
-            actions_feat = actions_feat[:,-self.max_length:]
-            returns_to_go = returns_to_go[:,-self.max_length:]
-            timesteps = timesteps[:,-self.max_length:]
+        timesteps = timesteps[:,-self.max_length:]
 
-            # pad all tokens to sequence length
-            attention_mask = torch.cat([torch.zeros(self.max_length-states.shape[1]), torch.ones(states.shape[1])])
-            attention_mask = attention_mask.to(dtype=torch.long, device=states.device).reshape(1, -1)
-            states = torch.cat(
-                [torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],
-                dim=1).to(dtype=torch.float32)
-            actions_feat = torch.cat(
-                [torch.zeros((actions_feat.shape[0], self.max_length - actions_feat.shape[1], self.act_dim),
-                             device=actions_feat.device), actions_feat],
-                dim=1).to(dtype=torch.float32)
-            returns_to_go = torch.cat(
-                [torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
-                dim=1).to(dtype=torch.float32)
-            timesteps = torch.cat(
-                [torch.zeros((timesteps.shape[0], self.max_length-timesteps.shape[1]), device=timesteps.device), timesteps],
-                dim=1
-            ).to(dtype=torch.long)
-        else:
-            attention_mask = None
+        # pad all tokens to sequence length
+        attention_mask = torch.cat([torch.zeros(self.max_length-states.shape[1]), torch.ones(states.shape[1])])
+        attention_mask = attention_mask.to(dtype=torch.long, device=states.device).reshape(1, -1)
+        states = torch.cat(
+            [torch.zeros((states.shape[0], self.max_length-states.shape[1], self.state_dim), device=states.device), states],
+            dim=1).to(dtype=torch.float32)
+        actions_feat = torch.cat(
+            [torch.zeros((actions_feat.shape[0], self.max_length - actions_feat.shape[1], self.act_dim),
+                         device=actions_feat.device), actions_feat],
+            dim=1).to(dtype=torch.float32)
+        returns_to_go = torch.cat(
+            [torch.zeros((returns_to_go.shape[0], self.max_length-returns_to_go.shape[1], 1), device=returns_to_go.device), returns_to_go],
+            dim=1).to(dtype=torch.float32)
+        timesteps = torch.cat(
+            [torch.zeros((timesteps.shape[0], self.max_length-timesteps.shape[1]), device=timesteps.device), timesteps],
+            dim=1
+        ).to(dtype=torch.long)
+        # else:
+        #     attention_mask = None
 
         # _, action_preds, return_preds = self.forward(
         #     states, actions, None, returns_to_go, timesteps, attention_mask=attention_mask, **kwargs)
@@ -317,6 +317,3 @@ class dtg(nn.Module):
         chosen_operation, _ = select_action(pi, candidate[-1])
         return chosen_operation
 
-
-if __name__ == '__main__':
-    print('Go home')

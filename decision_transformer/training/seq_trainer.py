@@ -25,7 +25,7 @@ class SequenceTrainer(Trainer):
         )
 
         loss = 0
-        for i, (pi, action, candidate) in enumerate(zip(pi_list, action_trajs, candidate_trajs)):
+        for iter, (pi, action, candidate) in enumerate(zip(pi_list, action_trajs, candidate_trajs)):
             # action: (n) , candidate: np.array with shape (n, M), each subarray with size M is a array of indices. Find the indices of action in candidate
             try:
                 action_indices = [np.where(candidate[i] == action[i])[0][0] for i in range(len(action))]
@@ -38,7 +38,7 @@ class SequenceTrainer(Trainer):
                 print(action[pos], candidate[pos])
                 raise e
             # action_indices = [candidate[i].index(action[i]) for i in range(len(action))]
-            loss += F.nll_loss(F.log_softmax(pi, dim=1), torch.tensor(action_indices).unsqueeze(dim=-1).to(pi.device))
+            loss += F.nll_loss(torch.log(pi), torch.tensor(action_indices).to(pi.device))
             # logprobs, ent_loss = eval_actions(pi, action)
             # loss += -ent_loss
 
