@@ -3,6 +3,15 @@
 import argparse
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
+parser.add_argument('--Pn_m', type=int, default=15, help='Number of machines instances to test')
+parser.add_argument('--Nn_j', type=int, default=15, help='Number of jobs on which to be loaded net are trained')
+parser.add_argument('--Nn_m', type=int, default=15, help='Number of machines on which to be loaded net are trained')
+# parser.add_argument('--low', type=int, default=1, help='LB of duration')
+# parser.add_argument('--high', type=int, default=99, help='UB of duration')
+parser.add_argument('--seed', type=int, default=200, help='Seed for validate set generation')
+parser.add_argument('--Algorithm', type=str, default="DRL", help='DRL or SPT')
+
 parser.add_argument('--env', type=str, default='jsp')
 parser.add_argument('--dataset', type=str, default='DRL')  # medium, medium-replay, medium-expert, expert
 parser.add_argument('--mode', type=str, default='normal')  # normal for standard setting, delayed for sparse
@@ -20,7 +29,7 @@ parser.add_argument('--learning_rate', '-lr', type=float, default=1e-4)
 parser.add_argument('--weight_decay', '-wd', type=float, default=1e-4)
 parser.add_argument('--warmup_steps', type=int, default=10000)
 parser.add_argument('--num_eval_episodes', type=int, default=5)
-parser.add_argument('--max_iters', type=int, default=10)
+parser.add_argument('--max_iters', type=int, default=30)
 parser.add_argument('--num_steps_per_iter', type=int, default=100)
 # parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--log_to_wandb', '-w', type=bool, default=False)

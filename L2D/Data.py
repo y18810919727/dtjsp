@@ -1,4 +1,13 @@
 import os.path
+import os
+# add the path to the sys
+import sys
+
+sys.path.append(os.path.dirname(__file__))
+# add the father path to the sys
+# sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+# sys.path.append(os.path.dirname(__file__))
+
 import pickle
 
 from mb_agg import *
@@ -7,35 +16,34 @@ import torch
 import argparse
 # from config import args as configs
 
+
 import time
 import numpy as np
 import collections
 
-dirname = os.path.dirname(__file__)
-parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
-parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
-parser.add_argument('--Pn_m', type=int, default=15, help='Number of machines instances to test')
-parser.add_argument('--Nn_j', type=int, default=15, help='Number of jobs on which to be loaded net are trained')
-parser.add_argument('--Nn_m', type=int, default=15, help='Number of machines on which to be loaded net are trained')
-parser.add_argument('--low', type=int, default=1, help='LB of duration')
-parser.add_argument('--high', type=int, default=99, help='UB of duration')
-parser.add_argument('--seed', type=int, default=200, help='Seed for validate set generation')
-parser.add_argument('--Algorithm', type=str, default="DRL", help='DRL or SPT')
-parser.add_argument('--device', type=str, default="cuda", help='devices')
-
-params = parser.parse_args()
-
-N_JOBS_P = params.Pn_j
-N_MACHINES_P = params.Pn_m
-LOW = params.low
-HIGH = params.high
-SEED = params.seed
-N_JOBS_N = params.Nn_j
-N_MACHINES_N = params.Nn_m
-Algorithm = params.Algorithm
-
 from Params import configs
 
+dirname = os.path.dirname(__file__)
+# parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+# parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
+# parser.add_argument('--Pn_m', type=int, default=15, help='Number of machines instances to test')
+# parser.add_argument('--Nn_j', type=int, default=15, help='Number of jobs on which to be loaded net are trained')
+# parser.add_argument('--Nn_m', type=int, default=15, help='Number of machines on which to be loaded net are trained')
+# parser.add_argument('--low', type=int, default=1, help='LB of duration')
+# parser.add_argument('--high', type=int, default=99, help='UB of duration')
+# parser.add_argument('--seed', type=int, default=200, help='Seed for validate set generation')
+# parser.add_argument('--Algorithm', type=str, default="DRL", help='DRL or SPT')
+
+# params = parser.parse_args()
+
+N_JOBS_P = configs.Pn_j
+N_MACHINES_P = configs.Pn_m
+LOW = configs.low
+HIGH = configs.high
+SEED = configs.seed
+N_JOBS_N = configs.Nn_j
+N_MACHINES_N = configs.Nn_m
+Algorithm = configs.Algorithm
 device = torch.device(configs.device)
 
 from JSSP_Env import SJSSP

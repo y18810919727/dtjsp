@@ -1,6 +1,9 @@
 import argparse
 
 parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+# args for data
+# parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+
 # args for device
 parser.add_argument('--device', type=str, default="cuda", help='devices')
 # args for env

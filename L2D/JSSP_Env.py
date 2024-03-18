@@ -82,7 +82,6 @@ class SJSSP(gym.Env, EzPickle):
 
     @override
     def reset(self, data):
-
         self.step_count = 0
         self.m = data[-1]
         self.dur = data[0].astype(np.single)
