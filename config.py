@@ -3,14 +3,6 @@
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
-parser.add_argument('--Pn_m', type=int, default=15, help='Number of machines instances to test')
-parser.add_argument('--Nn_j', type=int, default=15, help='Number of jobs on which to be loaded net are trained')
-parser.add_argument('--Nn_m', type=int, default=15, help='Number of machines on which to be loaded net are trained')
-# parser.add_argument('--low', type=int, default=1, help='LB of duration')
-# parser.add_argument('--high', type=int, default=99, help='UB of duration')
-parser.add_argument('--seed', type=int, default=200, help='Seed for validate set generation')
-parser.add_argument('--Algorithm', type=str, default="DRL", help='DRL or SPT')
 
 parser.add_argument('--env', type=str, default='jsp')
 parser.add_argument('--dataset', type=str, default='DRL')  # medium, medium-replay, medium-expert, expert
@@ -63,6 +55,16 @@ parser.add_argument('--num_mlp_layers_actor', type=int, default=2, help='No. of 
 parser.add_argument('--hidden_dim_actor', type=int, default=32, help='hidden dim of MLP in actor')
 parser.add_argument('--num_mlp_layers_critic', type=int, default=2, help='No. of layers in critic MLP')
 parser.add_argument('--hidden_dim_critic', type=int, default=32, help='hidden dim of MLP in critic')
+
+parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
+parser.add_argument('--Pn_m', type=int, default=15, help='Number of machines instances to test')
+parser.add_argument('--Nn_j', type=int, default=15, help='Number of jobs on which to be loaded net are trained')
+parser.add_argument('--Nn_m', type=int, default=15, help='Number of machines on which to be loaded net are trained')
+# parser.add_argument('--low', type=int, default=1, help='LB of duration')
+# parser.add_argument('--high', type=int, default=99, help='UB of duration')
+parser.add_argument('--seed', type=int, default=200, help='Seed for validate set generation')
+parser.add_argument('--Algorithm', type=str, default="DRL", help='DRL or SPT')
+
 
 args = parser.parse_args()
 

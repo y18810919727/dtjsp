@@ -5,7 +5,7 @@ import sys
 
 sys.path.append(os.path.dirname(__file__))
 # add the father path to the sys
-# sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # sys.path.append(os.path.dirname(__file__))
 
 import pickle
@@ -21,8 +21,9 @@ import time
 import numpy as np
 import collections
 
-from Params import configs
 
+# from config import args as configs
+from Params import configs
 dirname = os.path.dirname(__file__)
 # parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
 # parser.add_argument('--Pn_j', type=int, default=15, help='Number of jobs of instances to test')
