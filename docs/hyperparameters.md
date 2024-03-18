@@ -35,6 +35,14 @@ dtjsp/config.py
    ```--hidden_dim```
 
    原论文64
+5. 每个epoch需要的训练步数
 
+      ```--num_steps_per_iter```
+   目前定为300
+6. 验证时跑的episode次数
+
+   ```--num_eval_episodes```
+
+   目前定为10，根据验证结果中makespan的std大小进行调整，std越大，需要次数越多
    
 

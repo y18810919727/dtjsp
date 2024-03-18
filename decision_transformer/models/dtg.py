@@ -153,6 +153,10 @@ class dtg(nn.Module):
         # h_pooled = h_pooled.reshape(episode_length, -1, h_pooled.size(-1))
         h_nodes = h_nodes.reshape(episode_length, operation_size, -1)
 
+        # In the inferences stage, the action is equal to the num of tasks.
+        # Add a dimention to h_nodes in dim=1 and fill it with 0,
+        h_nodes = torch.cat([h_nodes, torch.zeros(episode_length, 1, h_nodes.size(-1), device=self.device)], dim=1)
+
         action_seq_feature = torch.gather(h_nodes, 1, actions.reshape([-1, 1, 1]).expand(-1, -1, h_nodes.size(-1))).squeeze(dim=1)
 
         dummy = candidate.unsqueeze(-1).expand(-1, self.n_j, h_nodes.size(-1))

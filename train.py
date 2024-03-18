@@ -13,7 +13,7 @@ from L2D.JSSP_Env import SJSSP
 
 from decision_transformer.models.dtg import dtg
 
-from decision_transformer.evaluation.evaluate_episodes import evaluate_episode, evaluate_episode_rtg
+from decision_transformer.evaluation.evaluate_episodes import evaluate_episode_rtg
 from decision_transformer.models.decision_transformer import DecisionTransformer
 from decision_transformer.models.mlp_bc import MLPBCModel
 from decision_transformer.training.act_trainer import ActTrainer
@@ -169,7 +169,7 @@ def train(
 
     def eval_episodes(target_rew, trajectories, env):
         def fn(model):
-            returns, lengths = [], []
+            makespans, base_makespans, returns, lengths = [], [], [], []
             for _ in range(num_eval_episodes):
                 # Choose a trajectory from trajectories randomlly
                 env_traj = random.choice(trajectories)
@@ -186,15 +186,15 @@ def train(
                     )
                 returns.append(ret)
                 lengths.append(length)
+                makespans.append(makespan)
+                base_makespans.append(behavior_makespan)
             return {
-                f'dtjsp_makespan_mean': np.mean(returns),
-                f'dtjsp_makespan_std': np.std(returns),
-                f'base_makespan_mean': np.mean(lengths),
-                f'base_makespan_std': np.std(lengths),
+                f'dtjsp_makespan_mean': np.mean(makespans),
+                f'dtjsp_makespan_std': np.std(makespans),
+                f'base_makespan_mean': np.mean(behavior_makespan),
+                f'base_makespan_std': np.std(behavior_makespan),
                 f'return_mean': np.mean(returns),
                 f'return_std': np.std(returns),
-                f'length_mean': np.mean(lengths),
-                f'length_std': np.std(lengths),
             }
         return fn
 
